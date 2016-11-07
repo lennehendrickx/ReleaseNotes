@@ -1,5 +1,4 @@
 import * as request from 'request'
-import * as Rx from '@reactivex/rxjs'
 
 export class Jira {
     private readonly apiUrl: string;
@@ -8,28 +7,26 @@ export class Jira {
         this.apiUrl = host + '/rest/api/2/';
     }
 
-    getIssue(issue: string): Rx.Observable<Issue> {
+    getIssue(issue: string): Promise<Issue> {
         return this.apiCall(ResponseMappers.issueMapper(), 'issue', issue);
     }
 
-    private apiCall<T>(responseMapper: ResponseMapper<T>, method:string, param:string):Rx.Observable<T> {
-        return Rx.Observable.create((observer: Rx.Observer<T>) => {
-                request.get(this.apiUrl + method + '/' + param,
-                    {
-                        json: true,
-                        auth: {user: this.user, pass: this.pass}
-                    }, function (error, response, body) {
-                        if (error) {
-                            console.log('An error occured: ' + error)
-                            observer.error(error);
-                        } else {
-                            observer.next(responseMapper.map(body));
-                            observer.complete();
-                        }
+    private apiCall<T>(responseMapper: ResponseMapper<T>, method:string, param:string):Promise<T> {
+        return new Promise((resolve, reject) => {
+            request.get(this.apiUrl + method + '/' + param,
+                {
+                    json: true,
+                    auth: {user: this.user, pass: this.pass}
+                }, function (error, response, body) {
+                    if (error) {
+                        console.log('An error occured: ' + error)
+                        reject(error);
+                    } else {
+                        resolve(responseMapper.map(body));
                     }
-                );
-            }
-        );
+                }
+            );
+        });
     }
 }
 
